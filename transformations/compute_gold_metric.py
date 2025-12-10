@@ -10,8 +10,6 @@ GOLD_PATH = "../data_lake/gold/"
 
 def load_silver():
     df = pd.read_csv(SILVER_PATH, parse_dates=['data_da_coleta'])
-    df['valor_de_venda'] = pd.to_numeric(df['valor_de_venda'], errors='coerce')
-
     return df
 
 def save_gold(df, file_name):
@@ -24,11 +22,41 @@ def save_gold(df, file_name):
 def compute_metric():
     df = load_silver()
 
-    # Exemplo de cálculo de métrica: Preço médio por tipo de combustível
-    gold_df = df.groupby('produto', as_index=False)['valor_de_venda'].mean()
-    gold_df.rename(columns={'valor_de_venda': 'preco_medio'}, inplace=True)
+    # Filtra apenas os registros com valor de venda não nulo
+    df = df[df["valor_de_venda"].notna()]
 
-    save_gold(gold_df, "gold_metric_precos_combustivel.csv")
+
+    # Calcula o preço médio de venda por produto
+    price_mean_by_product = (
+        df.groupby("produto")["valor_de_venda"]
+        .mean()
+        .reset_index()
+        .rename(columns={"valor_de_venda": "preco_medio_venda"})    
+    )
+    save_gold(price_mean_by_product, "gold_metric_preco_medio_venda_produto.csv")
+
+    # Calcula o preço médio de venda por produto e estado
+    price_mean_by_product = (
+        df.groupby(["estado","produto"])["valor_de_venda"]
+        .mean()
+        .reset_index()
+        .rename(columns={"valor_de_venda": "preco_medio_venda"})    
+    )
+    save_gold(price_mean_by_product, "gold_metric_preco_medio_venda_estado.csv")
+
+    #ranking dos estados por preço médio de venda de produto = 'Gasolina'
+
+    gasolina_df = df[df["produto"] == "GASOLINA"]
+    ranking_gasolina = (
+        gasolina_df.groupby("estado")["valor_de_venda"]
+        .mean()
+        .reset_index()
+        .rename(columns={"valor_de_venda": "preco_medio_gasolina"})
+        .sort_values(by="preco_medio_gasolina", ascending=False)
+        .reset_index(drop=True)
+    )
+    save_gold(ranking_gasolina, "gold_metric_ranking_estados_gasolina.csv") 
+
 
 if __name__ == "__main__":
     compute_metric()

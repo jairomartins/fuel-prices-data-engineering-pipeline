@@ -26,12 +26,16 @@ def clear_and_standardize_prices():
                           .str.replace(" ", "_")
             )
 
+            #converter valor de venda para float
+            df["valor_de_venda"] = df["valor_de_venda"].str.replace(",", ".").astype(float)
+
             #padronizar as datas
             if 'data_da_coleta' in df.columns:
                 df['data_da_coleta'] = pd.to_datetime(df['data_da_coleta'], errors='coerce')
             
+            df.rename(columns={'estado_-_sigla': 'estado'}, inplace=True)
 
-            #remove linhas vazias
+            #remove linhas vazias 
             df = df.dropna(how='all')
 
             all_difs.append(df) # Adiciona o DataFrame à lista modificada
