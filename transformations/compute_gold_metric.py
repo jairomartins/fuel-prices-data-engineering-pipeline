@@ -5,59 +5,54 @@ import pandas as pd
 print("Iniciando cálculo da métrica para os preços dos combustíveis...")
 
 
-SILVER_PATH = "../data_lake/silver/silver_C_2025_01.csv"
+SILVER_PATH = "../data_lake/silver/"
 GOLD_PATH = "../data_lake/gold/"
 
+
+
 def load_silver():
-    df = pd.read_csv(SILVER_PATH, parse_dates=['data_da_coleta'])
-    return df
+    dfs = []
+    for file in os.listdir(SILVER_PATH):
+        if file.endswith(".csv"):
+            file_path = os.path.join(SILVER_PATH, file)
+            print(f"📥 Lendo silver: {file_path}")
+            
+            df = pd.read_csv(
+                file_path,
+                parse_dates=["data_da_coleta"]
+            )
+            print(df.head(2))
+            dfs.append(df)
+            cont += 1
+
+    if not dfs:
+        raise ValueError("Nenhum arquivo CSV encontrado no SILVER_PATH")
+
+    silver_df = pd.concat(dfs, ignore_index=True)
+    return silver_df
 
 def save_gold(df, file_name):
     os.makedirs(GOLD_PATH, exist_ok=True)
-    gold_file_path = os.path.join(GOLD_PATH, file_name )
+    gold_file_path = os.path.join(GOLD_PATH, file_name)
+    
     df.to_csv(gold_file_path, index=False)
-    print(f"salva em: {gold_file_path}")
+    print(f"💾 Gold salvo em: {gold_file_path}")
 
 
-def compute_metric():
+
+def compute_gold_preco_medio_mensal():
     df = load_silver()
 
-    # Filtra apenas os registros com valor de venda não nulo
-    df = df[df["valor_de_venda"].notna()]
+    df["ano_mes"] = df["data_da_coleta"].dt.to_period("M")
 
-
-    # Calcula o preço médio de venda por produto
-    price_mean_by_product = (
-        df.groupby("produto")["valor_de_venda"]
-        .mean()
-        .reset_index()
-        .rename(columns={"valor_de_venda": "preco_medio_venda"})    
+    gold_df = (
+        df.groupby(["ano_mes", "produto"], as_index=False)
+          .agg(valor_medio=("valor_de_venda", "mean"))
     )
-    save_gold(price_mean_by_product, "gold_metric_preco_medio_venda_produto.csv")
 
-    # Calcula o preço médio de venda por produto e estado
-    price_mean_by_product = (
-        df.groupby(["estado","produto"])["valor_de_venda"]
-        .mean()
-        .reset_index()
-        .rename(columns={"valor_de_venda": "preco_medio_venda"})    
-    )
-    save_gold(price_mean_by_product, "gold_metric_preco_medio_venda_estado.csv")
-
-    #ranking dos estados por preço médio de venda de produto = 'Gasolina'
-
-    gasolina_df = df[df["produto"] == "GASOLINA"]
-    ranking_gasolina = (
-        gasolina_df.groupby("estado")["valor_de_venda"]
-        .mean()
-        .reset_index()
-        .rename(columns={"valor_de_venda": "preco_medio_gasolina"})
-        .sort_values(by="preco_medio_gasolina", ascending=False)
-        .reset_index(drop=True)
-    )
-    save_gold(ranking_gasolina, "gold_metric_ranking_estados_gasolina.csv") 
+    save_gold(gold_df, "preco_medio_mensal_produto.csv")
 
 
 if __name__ == "__main__":
-    compute_metric()
+    compute_gold_preco_medio_mensal()
     print("Cálculo da métrica concluído.")  

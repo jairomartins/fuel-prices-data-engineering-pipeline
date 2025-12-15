@@ -1,8 +1,6 @@
 import os
 import pandas as pd
 
-print("Iniciando limpeza e padronização dos preços dos combustíveis...")
-
 BRONZE_PATH = "../data_lake/bronze/"
 SILVER_PATH = "../data_lake/silver/"
 
@@ -15,7 +13,7 @@ def clear_and_standardize_prices():
     for file in os.listdir(BRONZE_PATH):
         if file.endswith(".csv"):
             file_path = os.path.join(BRONZE_PATH, file)
-            print(f"✔ Processando arquivo: {file_path}")
+            print(f" [] Processando arquivo: {file_path}")
 
             df = pd.read_csv(file_path, sep=';', encoding="latin1")
             
