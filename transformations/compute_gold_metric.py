@@ -55,6 +55,7 @@ def compute_gold_preco_medio_mensal():
     resultado_df.to_csv(os.path.join(GOLD_PATH, "preco_medio_mensal_produto.csv"), index=False)
     print("Métrica de preço médio mensal calculada e salva na camada gold.")
 
+
 if __name__ == "__main__":
     compute_gold_preco_medio_mensal()
     print("Cálculo da métrica concluído.")  

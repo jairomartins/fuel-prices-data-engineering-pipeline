@@ -4,6 +4,7 @@ import pandas as pd
 BRONZE_PATH = "../data_lake/bronze/"
 SILVER_PATH = "../data_lake/silver/"
 
+# Função para limpar e padronizar os preços dos combustíveis
 def clear_and_standardize_prices():
     os.makedirs(SILVER_PATH, exist_ok=True)
 
@@ -12,18 +13,21 @@ def clear_and_standardize_prices():
             continue
 
         file_path = os.path.join(BRONZE_PATH, file)
-        print(f"[] Processando arquivo: {file_path}")
+        print(f"[R] Processando arquivo: {file_path}")
 
-        df = pd.read_csv(file_path, sep=";", encoding="latin1")
+        df = pd.read_csv(file_path, sep=";", encoding="utf-8-sig", low_memory=False) # Ler o arquivo CSV encoding utf-8-sig = BOM para lidar com caracteres especiais
 
         # Padronizar colunas
         df.columns = (
-            df.columns.str.strip()
-                      .str.lower()
-                      .str.replace(" ", "_")
+            df.columns
+            .str.strip() # Remover espaços em branco
+            .str.lower() # Converter para minúsculas
+            .str.replace(r"[^\w]", "_", regex=True) # Substituir caracteres especiais por _
+            .str.replace(r"_+", "_", regex=True) # Substituir múltiplos _ por um único _
+            .str.strip("_") # Remover _ do início e fim
         )
 
-        # Converter preço
+        # Converter preço em float
         df["valor_de_venda"] = (
             df["valor_de_venda"]
             .str.replace(",", ".", regex=False)
@@ -45,7 +49,7 @@ def clear_and_standardize_prices():
         silver_file_path = os.path.join(SILVER_PATH, f"silver_{file}")
         df.to_csv(silver_file_path, index=False)
 
-        print(f"[<] Arquivo salvo em silver: {silver_file_path}")
+        print(f"[S] Arquivo salvo em silver: {silver_file_path}")
 
 if __name__ == "__main__":
     clear_and_standardize_prices()
