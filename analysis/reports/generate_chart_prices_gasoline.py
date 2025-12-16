@@ -12,24 +12,20 @@ def load_gold_data():
 
 def generate_monthly_price_report(df):
     # Converter a coluna 'ano_mes' para datetime
-    df['ano_mes'] = pd.to_datetime(df['ano_mes'].astype(str))
+    df['ano_mes'] = pd.to_datetime(df['ano_mes'])
+    df = df.sort_values('ano_mes')
 
-    # Filtrar dados para um produto específico, por exemplo, 'GASOLINA'
-    produto_especifico = 'GASOLINA'
-    df_produto = df[df['produto'] == produto_especifico]
+    for produto in df['produto'].unique():
+        df_p = df[df['produto'] == produto]
+        plt.plot(df_p['ano_mes'], df_p['valor_medio'], marker='o', label=produto)
 
-    # Plotar o gráfico de preços médios mensais
-    plt.figure(figsize=(12, 6))
-    plt.plot(df_produto['ano_mes'], df_produto['valor_medio'], marker='o')
-    plt.title(f'Preço Médio Mensal de {produto_especifico}')
     plt.xlabel('Mês')
-    plt.ylabel('Preço Médio (R$)')
+    plt.ylabel('Preço médio')
+    plt.legend()
     plt.grid(True)
-    plt.xticks(rotation=45)
-    plt.tight_layout()
-    plt.savefig(f'{OUTPUT_PATH}/{produto_especifico}_preco_medio_mensal.png')
+    plt.title('Preço médio mensal por produto')
+    plt.savefig(f'{OUTPUT_PATH}/preco_medio_mensal.png')
     plt.show()
-    print(f"Relatório gerado para {produto_especifico}.")
 
 if __name__ == "__main__":
     mean_price_df = load_gold_data()

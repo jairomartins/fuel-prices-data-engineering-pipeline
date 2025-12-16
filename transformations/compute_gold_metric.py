@@ -2,56 +2,58 @@ import os
 
 import pandas as pd
 
-print("Iniciando cálculo da métrica para os preços dos combustíveis...")
+print("Iniciando cálculo da métrica para os preços dos combustíveis  ...")
 
 
 SILVER_PATH = "../data_lake/silver/"
 GOLD_PATH = "../data_lake/gold/"
 
 
+def compute_gold_preco_medio_mensal():
 
-def load_silver():
-    dfs = []
+    dados = {}
+
     for file in os.listdir(SILVER_PATH):
         if file.endswith(".csv"):
-            file_path = os.path.join(SILVER_PATH, file)
-            print(f"📥 Lendo silver: {file_path}")
+
+            print(f"Processando arquivo: {file}")
+
+            df = pd.read_csv(os.path.join(SILVER_PATH, file), parse_dates=["data_da_coleta"], low_memory=False)
+            df['ano_mes'] = df['data_da_coleta'].dt.to_period('M')  # Extrair ano e mês
             
-            df = pd.read_csv(
-                file_path,
-                parse_dates=["data_da_coleta"]
+            # Agrupar por ano_mes e produto, calculando a soma e a contagem dos valores ainda no arquivo 
+            grouped = (
+                df.groupby(['ano_mes', 'produto'])['valor_de_venda']
+                .agg(['sum', 'count'])
+                .reset_index()
             )
-            print(df.head(2))
-            dfs.append(df)
-            cont += 1
 
-    if not dfs:
-        raise ValueError("Nenhum arquivo CSV encontrado no SILVER_PATH")
+            for _, row in grouped.iterrows():
+                key = (str(row['ano_mes']), row['produto'])
+                if key not in dados:
+                    dados[key] = {
+                        "soma" : row["sum"],
+                        "count": row["count"]
+                    }
+                else:
+                    dados[key]["soma"] += row["sum"]
+                    dados[key]["count"] += row["count"]
 
-    silver_df = pd.concat(dfs, ignore_index=True)
-    return silver_df
-
-def save_gold(df, file_name):
-    os.makedirs(GOLD_PATH, exist_ok=True)
-    gold_file_path = os.path.join(GOLD_PATH, file_name)
+    # Preparar os dados para o DataFrame final
+   
+    registros = [
+        {
+            "ano_mes": key[0],
+            "produto": key[1],
+            "valor_medio": dados[key]["soma"] / dados[key]["count"]
+        }
+        for key in dados
+    ]
     
-    df.to_csv(gold_file_path, index=False)
-    print(f"💾 Gold salvo em: {gold_file_path}")
-
-
-
-def compute_gold_preco_medio_mensal():
-    df = load_silver()
-
-    df["ano_mes"] = df["data_da_coleta"].dt.to_period("M")
-
-    gold_df = (
-        df.groupby(["ano_mes", "produto"], as_index=False)
-          .agg(valor_medio=("valor_de_venda", "mean"))
-    )
-
-    save_gold(gold_df, "preco_medio_mensal_produto.csv")
-
+    #salvar o DataFrame final na camada gold
+    resultado_df = pd.DataFrame(registros)
+    resultado_df.to_csv(os.path.join(GOLD_PATH, "preco_medio_mensal_produto.csv"), index=False)
+    print("Métrica de preço médio mensal calculada e salva na camada gold.")
 
 if __name__ == "__main__":
     compute_gold_preco_medio_mensal()

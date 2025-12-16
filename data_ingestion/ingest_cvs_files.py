@@ -12,7 +12,7 @@ def ingest_raw_files():
             src = os.path.join(RAW_PATH, file)
             dst = os.path.join(BRONZE_PATH, file)
             shutil.copy(src, dst)
-            print(f"✔ Arquivo movido para bronze: {dst}")
+            print(f"[<] Arquivo movido para bronze: {dst}")
 
 if __name__ == "__main__":
     ingest_raw_files()
